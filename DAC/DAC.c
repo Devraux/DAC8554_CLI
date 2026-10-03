@@ -27,7 +27,7 @@ static uint8_t get_dac_address_bits(dac_instance_t dac_inst)
 bool dac_init(void)
 {
     uint32_t baudrate = 0;
-    gpio_set_function(DAC_SCL_PIN, GPIO_FUNC_SPI);
+    gpio_set_function(DAC_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(DAC_DIN_PIN, GPIO_FUNC_SPI);
     
     gpio_init(DAC_SYNC_PIN);

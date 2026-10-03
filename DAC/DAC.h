@@ -12,9 +12,11 @@
 #define DAC_CHANNELS_COUNT (4) // Number of DAC channels (A/B/C/D)
 
 #define DAC_SYNC_PIN (0)
-#define DAC_SCL_PIN (2)
+#define DAC_SCK_PIN (2)
 #define DAC_DIN_PIN (3)
 #define DAC_SPI_INSTANCE (spi0)
+
+#define DAC_V_REF (2.048f)
 
 typedef struct dac_state_t
 {
