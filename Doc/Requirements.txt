@@ -1,0 +1,46 @@
+- konsola
+- jak najszybciej
+- cli protokół tekstowy
+- tryb debug i tryb standardowy
+- debug 
+- tryb normalny reaguje na komendy wysyłania odbierania
+* debug wysyła metadane
+* tryb normal tylko komendy
+- praca w trybie ciągłym a w trybie sekwencyjnym
+- generowanie lockfile - zapamiętywanie starych komend i wartości
+- w hex zmienne dac-a, bez zmiennoprzecinkowych napiec 
+- komenda żeby przeliczyła jakie są napięcia ustawione(bardzo opcjonalne)
+
+Command_example
+
+
+Command_type | DAC_instance | Dac_channel | output_value
+
+Command_type:
+    write_single  - ustaw zadaną wartość wybranego DAC-a
+    write_all     - ustaw zadane wartości wszystkich kanałów DAC-a
+    debug 0 / --debug 1 - tryb debugowania (wyświetlanie dodatkowych metadanych)
+    help, -h, help, h, ?
+    read_config - odczytaj ustawienia każdego kanału każdego DAC-a
+
+write_single: 
+    DAC_instance
+        prefix: --inst
+        value: 0, 1, 2
+
+    Dac_channel 
+        prefix: --ch
+        value:  a 0x1234 , b 0x5678, c 0x9abc, d 0xdef
+
+write_all: 
+    DAC_instance
+        prefix: --inst
+        value: 0, 1, 2
+
+    Dac_config
+        prefix: --ch 
+        value: a 0x1234 , b 0x5678, c 0x9abc, d 0xdef
+
+Przykład:
+write_single --inst 2 --ch a 0x1234
+write_all --inst 1 --ch a 0x1234 --ch b 0x5678 --ch c 0x9abc --ch d 0xdef
