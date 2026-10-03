@@ -23,15 +23,12 @@ void read_line(char *buffer, uint32_t max_len)
         int c = getchar();
 
         if(c == '\r' || c == '\n')
-        {
             break;
-        }
 
         // Escape sequence
         if(c == 27)
         {
             int c1 = getchar();
-
             if(c1 == '[')
             {
                 int c2 = getchar();
@@ -205,6 +202,14 @@ void parse_command(char *buffer, uint32_t str_len)
     if(str_len >= CLI_MAX_LINE_LENGTH)
         return;
     
+    // Clear previous commands
+    parsed_cmd.command = CMD_UNKNOWN;
+    parsed_cmd.dac_instance = DAC_INST_0;
+    parsed_cmd.status = true;
+    memset(parsed_cmd.channel_values, 0, sizeof(parsed_cmd.channel_values));
+    memset(parsed_cmd.channel_to_update, false, sizeof(parsed_cmd.channel_to_update));
+
+
     // Tokenize user input
     char *saveptr;
     uint32_t token_count = 0;
@@ -486,10 +491,12 @@ bool execute_command(parsed_cmd_t *cmd)
 
         case (CMD_DEBUG_ON):
             // Debug flag already settled 
+            status = true;
         break;
 
         case (CMD_DEBUG_OFF):
             // Debug flag already settled 
+            status = true;
         break;
 
         case (CMD_READ_CONFIG):
@@ -498,16 +505,16 @@ bool execute_command(parsed_cmd_t *cmd)
             for (uint8_t i = 0; i < DAC_INSTANCE_COUNT; i++)
             {
                 dac_get_state(&state, i);
-               printf("DAC instance: %d, channel A value: 0x%04X (%5u), Vout: %.4f V\n",
+                printf("DAC instance: %d, channel A value: 0x%04X (%5u), Vout: %.6f V\n",
                         i, state.ch_a_val, state.ch_a_val, (state.ch_a_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel B value: 0x%04X (%5u), Vout: %.4f V\n",
+                printf("DAC instance: %d, channel B value: 0x%04X (%5u), Vout: %.6f V\n",
                         i, state.ch_b_val, state.ch_b_val, (state.ch_b_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel C value: 0x%04X (%5u), Vout: %.4f V\n",
+                printf("DAC instance: %d, channel C value: 0x%04X (%5u), Vout: %.6f V\n",
                         i, state.ch_c_val, state.ch_c_val, (state.ch_c_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel D value: 0x%04X (%5u), Vout: %.4f V\n",
+                printf("DAC instance: %d, channel D value: 0x%04X (%5u), Vout: %.6f V\n",
                         i, state.ch_d_val, state.ch_d_val, (state.ch_d_val / 65535.0f) * DAC_V_REF);
                 printf("=============-+-=============\n");
             }
@@ -546,19 +553,36 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("Undefined command try again\n");
 
     }
+
+    if(cmd->debug_enable)
+    {
+        if(status)
+            printf("OK\n");
+        else
+            printf("Error\n");
+    }
+
+
     return status;
 }
 
 void cli_run(void)
 {
-    // CLI main loop
     while(true)
     {
         printf("DAC> ");
         fflush(stdout);
 
-        read_line(input_buf, CLI_MAX_LINE_LENGTH);      // Wait for user input 
-        parse_command(input_buf, strlen(input_buf));  // Parse user input
-        execute_command(&parsed_cmd);                   // Validate and update hardware with new user input
+        read_line(input_buf, CLI_MAX_LINE_LENGTH);
+
+        if(input_buf[0] == '\0')
+            continue;
+    
+        parse_command(input_buf, strlen(input_buf));
+
+        if(parsed_cmd.status)
+            execute_command(&parsed_cmd);
+        else
+            printf("Invalid command\r\n");
     }
 }
