@@ -23,21 +23,12 @@ typedef enum cmd_type_t
 
 typedef struct parsed_cmd_t
 {
-    // cmd_type_t selected_cmd;
-    // dac_instance_t dac_instance;
-    // uint32_t channel_values[DAC_CHANNELS_COUNT]; // DAC new values
-    // bool channel_to_update[DAC_CHANNELS_COUNT];  // DAC channels ready to update
-    // bool status; // true -> Ok, false -> Fail
-    // bool debug_mode; 
-
     cmd_type_t command;
     dac_instance_t dac_instance;
-
-    uint16_t channel_values[DAC_CHANNELS_COUNT];
-    bool channel_update[DAC_CHANNELS_COUNT];
-
-    bool valid;
-    bool debug_enabled;
+    uint16_t channel_values[DAC_CHANNELS_COUNT];// DAC new values
+    bool channel_to_update[DAC_CHANNELS_COUNT]; // DAC channels ready to update
+    bool status; // true -> Ok, false -> Fail
+    bool debug_enable;
 }parsed_cmd_t;
 
 

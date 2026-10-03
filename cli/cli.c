@@ -2,7 +2,15 @@
 
 static char input_buf[CLI_MAX_LINE_LENGTH];  //This variables should be private
 static char *input_tokenized[CLI_MAX_TOKENS]; //This variables should be private
-static parsed_cmd_t parsed_cmd = {0}; // Stay public static
+static parsed_cmd_t parsed_cmd =
+{
+    .command = CMD_UNKNOWN,
+    .dac_instance = DAC_INST_0,
+    .channel_values = 0,
+    .channel_to_update = false,
+    .status = true,
+    .debug_enable = false
+};
 
 void read_line(char *buffer, uint32_t max_len)
 {
@@ -61,149 +69,259 @@ void parse_command(char *buffer, uint32_t str_len)
         return;
 
     // Check command type and save arguments
-    uint8_t inst = 0;
-    if (strcmp(input_tokenized[0], "write_single") == 0)
+    int inst = 0;
+    if(strcmp(input_tokenized[0], "write_single") == 0)
     {
-        for (uint32_t i = 1; i < token_count; i++)
-        {
-            if (strcmp(input_tokenized[i], "--inst") == 0 && (i + 1) < token_count)
-            {
-                char *val_str = input_tokenized[i + 1];
-                inst = atoi(val_str);
+        bool instance_provided = false;
+        bool channel_provided = false;
 
-                if (inst >= 0 && inst <= 2)
-                    parsed_cmd.dac_instance = inst;
-                else
+        for(uint32_t i = 1; i < token_count; i++)
+        {
+            if(strcmp(input_tokenized[i], "--inst") == 0)
+            {
+                if((i + 1) >= token_count)
+                {
                     parsed_cmd.status = false;
-                
+                    break;
+                }
+
+                inst = atoi(input_tokenized[i + 1]);
+
+                if(inst >= 0 && inst <= 2)
+                {
+                    parsed_cmd.dac_instance = inst;
+                    instance_provided = true;
+                }
+                else
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
                 i++;
             }
-            
-            else if (strcmp(input_tokenized[i], "--ch") == 0 && (i + 2) < token_count)
+            else if(strcmp(input_tokenized[i], "--ch") == 0)
             {
+                if((i + 2) >= token_count)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                if(channel_provided)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
                 char *ch_letter = input_tokenized[i + 1];
                 char *val_str = input_tokenized[i + 2];
+
+                if(strlen(ch_letter) != 1)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
                 int32_t ch_idx = -1;
 
-                if (ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
+                if(ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
                     ch_idx = ch_letter[0] - 'a';
-                else if (ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
+                else if(ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
                     ch_idx = ch_letter[0] - 'A';
 
-                if (ch_idx >= 0 && ch_idx < DAC_CHANNELS_COUNT)
-                {
-                    parsed_cmd.channel_values[ch_idx] = strtoul(val_str, NULL, 16);
-                    parsed_cmd.channel_to_update[ch_idx] = true;
-                }
-                else
-                    parsed_cmd.status = false;
-            
-
-                i += 2; 
-            }
-        }
-
-        parsed_cmd.selected_cmd = CMD_WRITE_SINGLE;
-    }
-    
-    else if (strcmp(input_tokenized[0], "write_all") == 0)
-    {
-        for (uint32_t i = 1; i < token_count; i++)
-        {
-            if(strcmp(input_tokenized[i], "--inst") == 0 && (i + 1) < token_count) 
-            {
-                char *val_str = input_tokenized[i + 1];
-                uint8_t inst = (uint8_t)atoi(val_str);
-
-                if (inst == 0)
-                    parsed_cmd.dac_instance = DAC_INST_0;
-                else if (inst == 1) 
-                    parsed_cmd.dac_instance = DAC_INST_1;
-                else if (inst == 2) 
-                    parsed_cmd.dac_instance = DAC_INST_2;
-                else 
-                    parsed_cmd.status = false;
-
-                i += 1;
-            }
-
-            else if (strcmp(input_tokenized[i], "--ch") == 0 && (i + 2) < token_count)
-            {
-                char *ch_letter = input_tokenized[i + 1];
-                char *val_str = input_tokenized[i + 2];
-                int32_t ch_idx = -1;
-
-                if (ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
-                    ch_idx = ch_letter[0] - 'a';
-
-                else if (ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
-                    ch_idx = ch_letter[0] - 'A';
-
-                if (ch_idx >= 0 && ch_idx < DAC_CHANNELS_COUNT)
-                {
-                    parsed_cmd.channel_values[ch_idx] = strtoul(val_str, NULL, 16);
-                    parsed_cmd.channel_to_update[ch_idx] = true;
-                }
-                else
+                if(ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
                 {
                     parsed_cmd.status = false;
+                    break;
                 }
+
+                char *endptr;
+                unsigned long value = strtoul(val_str, &endptr, 16);
+
+                if(*endptr != '\0' || value > sizeof(uint16_t))
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                parsed_cmd.channel_values[ch_idx] = value;
+                parsed_cmd.channel_to_update[ch_idx] = true;
+                channel_provided = true;
 
                 i += 2;
             }
+            else
+            {
+                parsed_cmd.status = false;
+                break;
+            }
         }
 
-        parsed_cmd.selected_cmd = CMD_WRITE_SINGLE;
+        if(!instance_provided)
+            parsed_cmd.status = false;
+
+        if(!channel_provided)
+            parsed_cmd.status = false;
+
+        parsed_cmd.command = CMD_WRITE_SINGLE;
     }
+        
+    else if(strcmp(input_tokenized[0], "write_all") == 0)
+    {
+        bool instance_provided = false;
+        bool channel_provided = false;
 
+        for(uint32_t i = 1; i < token_count; i++)
+        {
+            if(strcmp(input_tokenized[i], "--inst") == 0)
+            {
+                if((i + 1) >= token_count)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
 
+                int inst = atoi(input_tokenized[i + 1]);
 
+                if(inst >= 0 && inst <= 2)
+                {
+                    parsed_cmd.dac_instance = inst;
+                    instance_provided = true;
+                }
+                else
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
 
+                i++;
+            }
+            else if(strcmp(input_tokenized[i], "--ch") == 0)
+            {
+                if((i + 2) >= token_count)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
 
+                char *ch_letter = input_tokenized[i + 1];
+                char *val_str = input_tokenized[i + 2];
+
+                if(strlen(ch_letter) != 1)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                int32_t ch_idx = -1;
+
+                if(ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
+                    ch_idx = ch_letter[0] - 'a';
+                else if(ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
+                    ch_idx = ch_letter[0] - 'A';
+
+                if(ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                if(parsed_cmd.channel_to_update[ch_idx])
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                char *endptr;
+                unsigned long value = strtoul(val_str, &endptr, 16);
+
+                if(*endptr != '\0' || value > UINT16_MAX)
+                {
+                    parsed_cmd.status = false;
+                    break;
+                }
+
+                parsed_cmd.channel_values[ch_idx] = value;
+                parsed_cmd.channel_to_update[ch_idx] = true;
+
+                channel_provided = true;
+
+                i += 2;
+            }
+            else
+            {
+                parsed_cmd.status = false;
+                break;
+            }
+        }
+
+        if(!instance_provided)
+            parsed_cmd.status = false;
+
+        if(!channel_provided)
+            parsed_cmd.status = false;
+
+        parsed_cmd.command = CMD_WRITE_ALL;
+    }
 
     else if (strcmp(input_tokenized[0], "help") == 0 || strcmp(input_tokenized[0],  "?") == 0 || strcmp(input_tokenized[0], "h") == 0)
     {
-      parsed_cmd.selected_cmd = CMD_HELP;
+      parsed_cmd.command = CMD_HELP;
     }
 
     else if (strcmp(input_tokenized[0], "debug") == 0)
     {   
         if (strcmp(input_tokenized[1], "0") == 0)
         {
-            parsed_cmd.selected_cmd = CMD_DEBUG_OFF;
-            parsed_cmd.debug_mode= false;
+            parsed_cmd.command = CMD_DEBUG_OFF;
+            parsed_cmd.debug_enable= false;
         }
         else if(strcmp(input_tokenized[1], "1") == 0)
         {
-            parsed_cmd.selected_cmd = CMD_DEBUG_ON;
-            parsed_cmd.debug_mode= false;
+            parsed_cmd.command = CMD_DEBUG_ON;
+            parsed_cmd.debug_enable= false;
         }
     }
 
     else if(strcmp(input_tokenized[0], "read_config") == 0)
     {
-        parsed_cmd.selected_cmd = CMD_READ_CONFIG;
+        parsed_cmd.command = CMD_READ_CONFIG;
     }
     
     else 
     {
-        parsed_cmd.selected_cmd = CMD_UNKNOWN;
+        parsed_cmd.command = CMD_UNKNOWN;
     }
 }
 
-
 bool execute_command(parsed_cmd_t *cmd)
 {
-    switch(parsed_cmd.selected_cmd)
+    bool status = false;
+    switch(cmd->command)
     {
-        case (CMD_UNKNOWN):
-            printf("Undefined command try again\n");
+        case CMD_UNKNOWN:
+            printf("Undefined command, try again\n");
+            return false;
         break;
 
-        case (CMD_WRITE_SINGLE):
+        case CMD_WRITE_SINGLE:
+            for(uint8_t i = 0; i < DAC_CHANNELS_COUNT; i++)
+            {
+                if(cmd->channel_to_update[i])
+                {
+                    status = dac_write_single( cmd->dac_instance, i, cmd->channel_values[i]);
+                    break;
+                }
+            }
         break;
 
         case (CMD_WRITE_ALL):
+            status = dac_write_all(cmd->dac_instance,
+                                   cmd->channel_values[0],
+                                   cmd->channel_values[1],
+                                   cmd->channel_values[2],
+                                   cmd->channel_values[3]);
         break;
 
         case (CMD_DEBUG_ON):
@@ -235,8 +353,7 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("Undefined command try again\n");
 
     }
-    
-    
+    return status;
 }
 
 void cli_run(void)
@@ -244,6 +361,9 @@ void cli_run(void)
     // CLI main loop
     while(true)
     {
+        printf("DAC> ");
+        fflush(stdout);
+        
         read_line(input_buf, CLI_MAX_LINE_LENGTH);      // Wait for user input 
         parse_command(input_buf, strlen(input_buf));  // Parse user input
         execute_command(&parsed_cmd);                   // Validate and update hardware with new user input
