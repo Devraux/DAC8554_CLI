@@ -420,6 +420,19 @@ void parse_command(char *buffer, uint32_t str_len)
         parsed_cmd.command = CMD_WRITE_ALL;
     }
 
+    else if(strcmp(input_tokenized[0], "zero") == 0)
+    {
+        if(token_count != 1)
+        {
+            parsed_cmd.status = false;
+            parsed_cmd.command = CMD_UNKNOWN;
+        }
+        else
+        {
+            parsed_cmd.command = CMD_ZERO;
+        }
+    }
+
     else if (strcmp(input_tokenized[0], "help") == 0 || strcmp(input_tokenized[0],  "?") == 0 || strcmp(input_tokenized[0], "h") == 0)
     {
       parsed_cmd.command = CMD_HELP;
@@ -489,6 +502,12 @@ bool execute_command(parsed_cmd_t *cmd)
                                    cmd->channel_values[3]);
         break;
 
+        case (CMD_ZERO):
+            status = dac_write_all(DAC_INST_0, 0, 0, 0, 0);
+            status = dac_write_all(DAC_INST_1, 0, 0, 0, 0);
+            status = dac_write_all(DAC_INST_2, 0, 0, 0, 0);
+        break;
+
         case (CMD_DEBUG_ON):
             // Debug flag already settled 
             status = true;
@@ -505,19 +524,21 @@ bool execute_command(parsed_cmd_t *cmd)
             for (uint8_t i = 0; i < DAC_INSTANCE_COUNT; i++)
             {
                 dac_get_state(&state, i);
-                printf("DAC instance: %d, channel A value: 0x%04X (%5u), Vout: %.6f V\n",
+                printf("=================================-++-=================================\n");
+                printf("| DAC instance: %d, channel A value: 0x%04X (%5u), Vout: %.6f V |\n",
                         i, state.ch_a_val, state.ch_a_val, (state.ch_a_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel B value: 0x%04X (%5u), Vout: %.6f V\n",
+                printf("| DAC instance: %d, channel B value: 0x%04X (%5u), Vout: %.6f V |\n",
                         i, state.ch_b_val, state.ch_b_val, (state.ch_b_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel C value: 0x%04X (%5u), Vout: %.6f V\n",
+                printf("| DAC instance: %d, channel C value: 0x%04X (%5u), Vout: %.6f V |\n",
                         i, state.ch_c_val, state.ch_c_val, (state.ch_c_val / 65535.0f) * DAC_V_REF);
 
-                printf("DAC instance: %d, channel D value: 0x%04X (%5u), Vout: %.6f V\n",
+                printf("| DAC instance: %d, channel D value: 0x%04X (%5u), Vout: %.6f V |\n",
                         i, state.ch_d_val, state.ch_d_val, (state.ch_d_val / 65535.0f) * DAC_V_REF);
-                printf("=============-+-=============\n");
+                printf("=================================-++-=================================\n");
             }
+            status = true;
         break;
 
         case CMD_HELP:
@@ -530,9 +551,14 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("      Example: write_single --inst 2 --ch A 0x1234\r\n");
             printf("\r\n");
 
-            printf("  write_all --inst <0-2> --ch A <value> --ch B <value> --ch C <value> --ch D <value>\r\n");
+            printf("  write_all --inst <0-2> <A-D> <value> ...\r\n");
             printf("      Write values to all DAC channels.\r\n");
             printf("      Example: write_all --inst 1 --ch A 0x1234 --ch B 0x5678 --ch C 0x9ABC --ch D 0xDEF0\r\n");
+            printf("\r\n");
+
+            printf("  zero\r\n");
+            printf("      Set all DAC outputs to zero.\r\n");
+            printf("      Example: zero\r\n");
             printf("\r\n");
 
             printf("  debug <0|1>\r\n");
@@ -547,6 +573,7 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("  help | h | ?\r\n");
             printf("      Display this help message.\r\n");
             printf("\r\n");
+            status = true;
         break;
 
         default:

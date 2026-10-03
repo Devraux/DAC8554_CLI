@@ -15,6 +15,7 @@ typedef enum cmd_type_t
     CMD_UNKNOWN,
     CMD_WRITE_SINGLE,
     CMD_WRITE_ALL,
+    CMD_ZERO,
     CMD_DEBUG_ON,
     CMD_DEBUG_OFF,
     CMD_READ_CONFIG,
