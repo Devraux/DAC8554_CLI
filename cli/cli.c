@@ -220,6 +220,15 @@ void parse_command(char *buffer, uint32_t str_len)
         token = strtok_r(NULL, " \r\n", &saveptr); // Tokenization is looking for " " or "\r" or "\n"
     }
 
+    for(uint32_t i = 0; i < token_count; i++)
+    {
+        for(char *p = input_tokenized[i]; *p != '\0'; p++)
+        {
+            if(*p >= 'A' && *p <= 'Z')
+                *p += 'a' - 'A';
+        }
+    }
+
     if (token_count == 0)
         return;
 

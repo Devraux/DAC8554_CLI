@@ -20,10 +20,10 @@
 
 typedef struct dac_state_t
 {
-    uint32_t ch_a_val;
-    uint32_t ch_b_val;
-    uint32_t ch_c_val;
-    uint32_t ch_d_val;
+    uint16_t ch_a_val;
+    uint16_t ch_b_val;
+    uint16_t ch_c_val;
+    uint16_t ch_d_val;
 
     uint32_t current_command;
 } dac_state_t;
