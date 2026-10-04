@@ -36,7 +36,7 @@ All four channels must be specified. Duplicate channels are not allowed.
 
 ### Zero all DACs
 
-Sets all channels of all DAC instances to zero:
+Sets every output channel of every DAC instance to zero.
 
 ```text
 zero

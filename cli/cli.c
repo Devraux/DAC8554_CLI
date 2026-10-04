@@ -559,7 +559,7 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("\r\n");
 
             printf("  zero\r\n");
-            printf("      Set all DAC outputs to zero.\r\n");
+            printf("      Sets every output channel of every DAC instance to zero.\r\n");
             printf("      Example: zero\r\n");
             printf("\r\n");
 
@@ -575,6 +575,11 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("  help | h | ?\r\n");
             printf("      Display this help message.\r\n");
             printf("\r\n");
+
+            printf("  Command history\r\n");
+            printf("      The CLI keeps the last entered command in history. Press the Up Arrow key to recall it.\r\n");
+            printf("\r\n");
+            
             status = true;
         break;
 
