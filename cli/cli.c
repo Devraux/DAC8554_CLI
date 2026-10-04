@@ -119,7 +119,6 @@ void read_line(char *buffer, uint32_t max_len)
                         break;
                 }
             }
-
             continue;
         }
 
@@ -128,9 +127,7 @@ void read_line(char *buffer, uint32_t max_len)
         {
             if(cursor_pos > 0)
             {
-                memmove(&buffer[cursor_pos - 1],
-                        &buffer[cursor_pos],
-                        length - cursor_pos);
+                memmove(&buffer[cursor_pos - 1], &buffer[cursor_pos], length - cursor_pos);
 
                 cursor_pos--;
                 length--;
@@ -143,9 +140,7 @@ void read_line(char *buffer, uint32_t max_len)
                 }
 
                 putchar(' ');
-
                 printf("\033[%zuD", length - cursor_pos + 1);
-
                 fflush(stdout);
             }
 
@@ -161,9 +156,7 @@ void read_line(char *buffer, uint32_t max_len)
         // Insert character at cursor position
         if(length < max_len - 1)
         {
-            memmove(&buffer[cursor_pos + 1],
-                    &buffer[cursor_pos],
-                    length - cursor_pos);
+            memmove(&buffer[cursor_pos + 1], &buffer[cursor_pos], length - cursor_pos);
 
             buffer[cursor_pos] = (char)c;
 

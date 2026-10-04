@@ -183,7 +183,7 @@ uint32_t status = 0;
     write_buffer[0] &= ~(1 << 4);  // set load type - single channel update
     write_buffer[0] |= ((1 << 2) | (1 << 1)); // Select channel D
     dac_state[dac_inst].ch_d_val = dac_ch_d_val;
-    write_buffer[1] = (dac_ch_d_val >> 8) & 0xFF; // Dodano wpisanie wartości danych
+    write_buffer[1] = (dac_ch_d_val >> 8) & 0xFF; 
     write_buffer[2] = (dac_ch_d_val & 0xFF);
     gpio_put(DAC_SYNC_PIN, 0);
     status = spi_write_blocking(DAC_SPI_INSTANCE, write_buffer, 3);
