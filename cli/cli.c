@@ -579,7 +579,7 @@ bool execute_command(parsed_cmd_t *cmd)
             printf("  Command history\r\n");
             printf("      The CLI keeps the last entered command in history. Press the Up Arrow key to recall it.\r\n");
             printf("\r\n");
-            
+
             status = true;
         break;
 
@@ -611,12 +611,17 @@ void cli_run(void)
 
         if(input_buf[0] == '\0')
             continue;
-    
+
         parse_command(input_buf, strlen(input_buf));
 
         if(parsed_cmd.status)
-            execute_command(&parsed_cmd);
+        {
+            if(!execute_command(&parsed_cmd))
+                printf("Write error.");
+        }
         else
+        {
             printf("Invalid command\r\n");
+        }
     }
 }
