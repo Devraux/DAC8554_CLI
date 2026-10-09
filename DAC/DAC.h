@@ -49,4 +49,12 @@ bool dac_write_single(dac_instance_t dac_inst, dac_channel_t dac_channel, uint16
 bool dac_write_all(dac_instance_t dac_inst, uint16_t dac_ch_a_val, uint16_t dac_ch_b_val, uint16_t dac_ch_c_val, uint16_t dac_ch_d_val);
 void dac_get_state(dac_state_t *state, dac_instance_t dac_instance);
 
+// Resolve channel alias:
+// TP, TEST_POINT, MONITOR  -> channel A
+// DRV_OFFSET               -> channel B
+// CFD_ZERO                 -> channel C
+// CFD_TH                   -> channel D
+// @important alias should be provided as small letter word
+dac_channel_t dac_resolve_channel(const char* alias);
+
 #endif

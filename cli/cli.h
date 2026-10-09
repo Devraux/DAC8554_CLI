@@ -7,8 +7,9 @@
 #include <stdio.h>
 #include "DAC.h"
 
-#define  CLI_MAX_LINE_LENGTH (512) // Max number of characters in one command line
-#define  CLI_MAX_TOKENS (20) // Max number of words in one command line
+#define CLI_MAX_LINE_LENGTH (512) // Max number of characters in one command line
+#define CLI_MAX_TOKENS (20) // Max number of words in one command line
+#define CLI_MAX_COMMAND_MEM_DEPTH (32) // Max number of command memory depth
 
 typedef enum cmd_type_t
 {

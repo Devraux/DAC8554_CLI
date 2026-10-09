@@ -16,7 +16,14 @@ void read_line(char *buffer, uint32_t max_len)
 {
     size_t length = 0;
     size_t cursor_pos = 0;
-    static char last_command[CLI_MAX_LINE_LENGTH];
+
+    static char last_command[CLI_MAX_COMMAND_MEM_DEPTH][CLI_MAX_LINE_LENGTH] = {0};
+
+    static uint32_t history_count = 0;
+    static uint32_t history_next = 0;
+    int32_t history_pos = -1;
+
+    buffer[0] = '\0';
 
     while(length < max_len - 1)
     {
@@ -29,28 +36,63 @@ void read_line(char *buffer, uint32_t max_len)
         if(c == 27)
         {
             int c1 = getchar();
+
             if(c1 == '[')
             {
                 int c2 = getchar();
 
                 switch(c2)
                 {
-                    case 'A':   // Up arrow
+                    case 'A':   // Up arrow 
                     {
-                        if(last_command[0] != '\0')
-                        {
-                            // Clear current line
-                            printf("\r\033[K");
-                            printf("DAC> ");
+                        if(history_count == 0)
+                            break;
 
-                            strcpy(buffer, last_command);
+                        if(history_pos < (int32_t)history_count - 1)
+                            history_pos++;
+
+                        uint32_t index = (history_next + CLI_MAX_COMMAND_MEM_DEPTH - 1 - history_pos) % CLI_MAX_COMMAND_MEM_DEPTH;
+
+                        printf("\r\033[K");
+                        printf("DAC> ");
+
+                        strcpy(buffer, last_command[index]);
+
+                        length = strlen(buffer);
+                        cursor_pos = length;
+
+                        printf("%s", buffer);
+                        fflush(stdout);
+                    }
+                    break;
+
+                    case 'B':   // Down arrow
+                    {
+                        if(history_pos < 0)
+                            break;
+
+                        history_pos--;
+
+                        printf("\r\033[K");
+                        printf("DAC> ");
+
+                        if(history_pos < 0)
+                        {
+                            buffer[0] = '\0';
+                            length = 0;
+                            cursor_pos = 0;
+                        }
+                        else
+                        {
+                            uint32_t index = (history_next + CLI_MAX_COMMAND_MEM_DEPTH  - 1 - history_pos) % CLI_MAX_COMMAND_MEM_DEPTH;
+                            strcpy(buffer, last_command[index]);
 
                             length = strlen(buffer);
                             cursor_pos = length;
-
-                            printf("%s", buffer);
-                            fflush(stdout);
                         }
+
+                        printf("%s", buffer);
+                        fflush(stdout);
                     }
                     break;
 
@@ -96,18 +138,14 @@ void read_line(char *buffer, uint32_t max_len)
 
                         if(c3 == '~' && cursor_pos < length)
                         {
-                            memmove(&buffer[cursor_pos],
-                                    &buffer[cursor_pos + 1],
-                                    length - cursor_pos);
+                            memmove(&buffer[cursor_pos], &buffer[cursor_pos + 1], length - cursor_pos);
 
                             length--;
 
                             printf("\033[K");
 
                             for(size_t i = cursor_pos; i < length; i++)
-                            {
                                 putchar(buffer[i]);
-                            }
 
                             printf("\033[%zuD", length - cursor_pos);
                             fflush(stdout);
@@ -122,7 +160,7 @@ void read_line(char *buffer, uint32_t max_len)
             continue;
         }
 
-        //Backspace
+        // Backspace
         if(c == '\b' || c == 127)
         {
             if(cursor_pos > 0)
@@ -131,47 +169,36 @@ void read_line(char *buffer, uint32_t max_len)
 
                 cursor_pos--;
                 length--;
-
                 printf("\b");
 
                 for(size_t i = cursor_pos; i < length; i++)
-                {
                     putchar(buffer[i]);
-                }
 
                 putchar(' ');
                 printf("\033[%zuD", length - cursor_pos + 1);
                 fflush(stdout);
             }
-
             continue;
         }
 
         // Ignore non-printable characters
         if(c < 32 || c > 126)
-        {
             continue;
-        }
 
         // Insert character at cursor position
         if(length < max_len - 1)
         {
             memmove(&buffer[cursor_pos + 1], &buffer[cursor_pos], length - cursor_pos);
-
             buffer[cursor_pos] = (char)c;
 
             length++;
             cursor_pos++;
 
             for(size_t i = cursor_pos - 1; i < length; i++)
-            {
                 putchar(buffer[i]);
-            }
 
             if(cursor_pos < length)
-            {
                 printf("\033[%zuD", length - cursor_pos);
-            }
 
             fflush(stdout);
         }
@@ -179,12 +206,21 @@ void read_line(char *buffer, uint32_t max_len)
 
     buffer[length] = '\0';
 
-    // Save command for history
+    // Save command to history
     if(length > 0)
     {
-        strcpy(last_command, buffer);
-    }
+        uint32_t previous_index = (history_next + CLI_MAX_COMMAND_MEM_DEPTH - 1) % CLI_MAX_COMMAND_MEM_DEPTH;
 
+        if(history_count == 0 || strcmp(last_command[previous_index], buffer) != 0)
+        {
+            strncpy(last_command[history_next], buffer, CLI_MAX_LINE_LENGTH - 1);
+            last_command[history_next][CLI_MAX_LINE_LENGTH - 1] = '\0';
+            history_next = (history_next + 1) % CLI_MAX_COMMAND_MEM_DEPTH;
+
+            if(history_count < CLI_MAX_COMMAND_MEM_DEPTH)
+                history_count++;
+        }
+    }
     printf("\r\n");
 }
 
@@ -213,6 +249,7 @@ void parse_command(char *buffer, uint32_t str_len)
         token = strtok_r(NULL, " \r\n", &saveptr); // Tokenization is looking for " " or "\r" or "\n"
     }
 
+    // Case insensitive feature -> modify each letter to small letter
     for(uint32_t i = 0; i < token_count; i++)
     {
         for(char *p = input_tokenized[i]; *p != '\0'; p++)
@@ -274,18 +311,13 @@ void parse_command(char *buffer, uint32_t str_len)
                 char *ch_letter = input_tokenized[i + 1];
                 char *val_str = input_tokenized[i + 2];
 
-                if(strlen(ch_letter) != 1)
+                int32_t ch_idx = (int32_t)dac_resolve_channel(input_tokenized[i + 1]);
+
+                if (ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
                 {
                     parsed_cmd.status = false;
                     break;
                 }
-
-                int32_t ch_idx = -1;
-
-                if(ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
-                    ch_idx = ch_letter[0] - 'a';
-                else if(ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
-                    ch_idx = ch_letter[0] - 'A';
 
                 if(ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
                 {
@@ -327,7 +359,7 @@ void parse_command(char *buffer, uint32_t str_len)
     else if(strcmp(input_tokenized[0], "write_all") == 0)
     {
         bool instance_provided = false;
-        bool channel_provided = false;
+        uint8_t channel_provided = 0;
 
         for(uint32_t i = 1; i < token_count; i++)
         {
@@ -365,18 +397,13 @@ void parse_command(char *buffer, uint32_t str_len)
                 char *ch_letter = input_tokenized[i + 1];
                 char *val_str = input_tokenized[i + 2];
 
-                if(strlen(ch_letter) != 1)
+                int32_t ch_idx = (int32_t)dac_resolve_channel(input_tokenized[i + 1]);
+
+                if (ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
                 {
                     parsed_cmd.status = false;
                     break;
                 }
-
-                int32_t ch_idx = -1;
-
-                if(ch_letter[0] >= 'a' && ch_letter[0] <= 'd')
-                    ch_idx = ch_letter[0] - 'a';
-                else if(ch_letter[0] >= 'A' && ch_letter[0] <= 'D')
-                    ch_idx = ch_letter[0] - 'A';
 
                 if(ch_idx < 0 || ch_idx >= DAC_CHANNELS_COUNT)
                 {
@@ -402,7 +429,7 @@ void parse_command(char *buffer, uint32_t str_len)
                 parsed_cmd.channel_values[ch_idx] = value;
                 parsed_cmd.channel_to_update[ch_idx] = true;
 
-                channel_provided = true;
+                channel_provided++;
 
                 i += 2;
             }
@@ -416,7 +443,7 @@ void parse_command(char *buffer, uint32_t str_len)
         if(!instance_provided)
             parsed_cmd.status = false;
 
-        if(!channel_provided)
+        if(channel_provided != DAC_CHANNELS_COUNT)
             parsed_cmd.status = false;
 
         parsed_cmd.command = CMD_WRITE_ALL;
@@ -542,42 +569,45 @@ bool execute_command(parsed_cmd_t *cmd)
             }
             status = true;
         break;
-
+        
         case CMD_HELP:
             printf("\r\n");
             printf("Available commands:\r\n");
             printf("\r\n");
 
-            printf("  write_single --inst <0-2> --ch <A-D> <value>\r\n");
+            printf("  * write_single --inst <0-2> --ch <A-D ora alias> <value>\r\n");
             printf("      Write a value to a single DAC channel.\r\n");
-            printf("      Example: write_single --inst 2 --ch A 0x1234\r\n");
+            printf("      Example: write_single --inst 0 --ch A 0x1234\r\n");
             printf("\r\n");
 
-            printf("  write_all --inst <0-2> <A-D> <value> ...\r\n");
+            printf("  * write_all --inst <0-2> <A-D or alias> <value> ...\r\n");
             printf("      Write values to all DAC channels.\r\n");
-            printf("      Example: write_all --inst 1 --ch A 0x1234 --ch B 0x5678 --ch C 0x9ABC --ch D 0xDEF0\r\n");
+            printf("      Example: write_all --inst 0 --ch A 0x1234 --ch B 0x5678 --ch C 0x9ABC --ch D 0xDEF0\r\n");
             printf("\r\n");
 
-            printf("  zero\r\n");
+            printf("  * zero\r\n");
             printf("      Sets every output channel of every DAC instance to zero.\r\n");
             printf("      Example: zero\r\n");
             printf("\r\n");
 
-            printf("  debug <0|1>\r\n");
+            printf("  * debug <0|1>\r\n");
             printf("      Disable or enable debug mode.\r\n");
             printf("      Example: debug 1\r\n");
             printf("\r\n");
 
-            printf("  read_config\r\n");
+            printf("  * read_config\r\n");
             printf("      Read current DAC configuration.\r\n");
             printf("\r\n");
 
-            printf("  help | h | ?\r\n");
+            printf("  * help | h | ?\r\n");
             printf("      Display this help message.\r\n");
             printf("\r\n");
-
-            printf("  Command history\r\n");
-            printf("      The CLI keeps the last entered command in history. Press the Up Arrow key to recall it.\r\n");
+            
+            printf("DAC channel aliases:\r\n");
+            printf("  * Channel A: TP, TEST_POINT, MONITOR\r\n");
+            printf("  * Channel B: DRV_OFFSET\r\n");
+            printf("  * Channel C: CFD_ZERO\r\n");
+            printf("  * Channel D: CFD_TH\r\n");
             printf("\r\n");
 
             status = true;
@@ -585,6 +615,7 @@ bool execute_command(parsed_cmd_t *cmd)
 
         default:
             printf("Undefined command try again\n");
+            status = false;
 
     }
 
@@ -617,7 +648,7 @@ void cli_run(void)
         if(parsed_cmd.status)
         {
             if(!execute_command(&parsed_cmd))
-                printf("Write error.");
+                printf("Write error.\n");
         }
         else
         {

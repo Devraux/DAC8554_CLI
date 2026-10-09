@@ -199,3 +199,20 @@ void dac_get_state(dac_state_t *state, dac_instance_t dac_instance)
 
     memcpy(state, &dac_state[dac_instance], sizeof(dac_state_t));
 }
+
+dac_channel_t dac_resolve_channel(const char *alias)
+{
+    if (strcmp(alias, "a") == 0 || strcmp(alias, "0") == 0 || strcmp(alias, "tp") == 0 || strcmp(alias, "test_point") == 0 || strcmp(alias, "monitor") == 0)
+        return CHANNEL_A;
+
+    if (strcmp(alias, "b") == 0 || strcmp(alias, "1") == 0 || strcmp(alias, "drv_offset") == 0)
+        return CHANNEL_B;
+
+    if (strcmp(alias, "c") == 0 || strcmp(alias, "2") == 0 || strcmp(alias, "cfd_zero") == 0)
+        return CHANNEL_C;
+
+    if (strcmp(alias, "d") == 0 || strcmp(alias, "3") == 0 || strcmp(alias, "cfd_th") == 0)
+        return CHANNEL_D;
+
+    return (dac_channel_t)-1;
+}

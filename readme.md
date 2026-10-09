@@ -2,6 +2,25 @@
 
 A simple CLI for controlling three TI DAC8554 DACs connected to a Raspberry Pi Pico.
 
+## Pinout
+
+| Pi Pico Pin / GPIO | Number |
+|--------------------|--------|
+| DAC_SYNC           | 0      |
+| DAC_SCK            | 2      |
+| DAC_DIN            | 3      |
+
+## Channel Mapping and Aliases
+
+Each DAC8554 has four output channels. A channel can be selected using its letter (`A`–`D`) or one of the aliases listed below.
+
+| Channel | Alias                         | Description          |
+| ------- | ----------------------------- | -------------------- |
+| A       | `TP`, `TEST_POINT`, `MONITOR` | Test point / monitor |
+| B       | `DRV_OFFSET`                  | Driver offset        |
+| C       | `CFD_ZERO`                    | CFD zero             |
+| D       | `CFD_TH`                      | CFD threshold        |
+
 ## Commands
 
 ### Write single channel
@@ -9,13 +28,13 @@ A simple CLI for controlling three TI DAC8554 DACs connected to a Raspberry Pi P
 Writes a value to one selected DAC channel:
 
 ```text
-write_single --inst <0-2> --ch <A-D> <value>
+write_single --inst <0-2> --ch <A-D or alias> <value>
 ```
 
 Example:
 
 ```text
-write_single --inst 2 --ch A 0x1234
+write_single --inst 0 --ch A 0x1234
 ```
 
 ### Write all channels
@@ -23,13 +42,13 @@ write_single --inst 2 --ch A 0x1234
 Writes values to all four channels of the selected DAC:
 
 ```text
-write_all --inst <0-2> --ch <A-D> <value> --ch <A-D> <value> --ch <A-D> <value> --ch <A-D> <value>
+write_all --inst <0-2> --ch <A-D or alias> <value> --ch <A-D or alias> <value> --ch <A-D or alias> <value> --ch <A-D or alias> <value>
 ```
 
 Example:
 
 ```text
-write_all --inst 1 --ch A 0x1234 --ch B 0x5678 --ch C 0x9ABC --ch D 0x9994
+write_all --inst 0 --ch A 0x0123 --ch B 0x4567 --ch C 0x89AB --ch D 0xCDEF
 ```
 
 All four channels must be specified. Duplicate channels are not allowed.
@@ -77,7 +96,7 @@ Example output:
 
 **Important:** `read_config` does not read the values from the DAC8554. The DAC8554 does not provide a readback mechanism for these values. Therefore, the command shows the values that were last written by the Pico.
 
-The `Vout` value is calculated from the stored DAC code using the configured reference voltage.
+The `Vout` value is calculated from the stored DAC code using the configured reference voltage (2.048 V).
 
 ### Debug
 
@@ -110,9 +129,11 @@ h
 ?
 ```
 
-## Case-insensitive commands
+## Important Information
 
-Commands, options and channel names are case-insensitive.
+### Case-insensitive input
+
+Commands, options, and channel names are case-insensitive. Uppercase and lowercase letters can be used interchangeably.
 
 For example:
 
@@ -125,3 +146,12 @@ is equivalent to:
 ```text
 write_single --inst 0 --ch a 0x1234
 ```
+
+### Command history
+
+The CLI stores up to 32 lines of command history, allowing previously entered commands to be accessed and reused.
+
+* **Up / Down arrows:** Navigate backward and forward through the command history.
+* **Left / Right arrows:** Move the cursor left and right within the current command string, allowing you to navigate and edit the input.
+
+
