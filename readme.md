@@ -155,3 +155,26 @@ The CLI stores up to 32 lines of command history, allowing previously entered co
 * **Left / Right arrows:** Move the cursor left and right within the current command string, allowing you to navigate and edit the input.
 
 
+## Python API
+
+The `dac8554_api.py` module provides a simple Python interface for controlling the DAC8554 devices via USB.
+
+The API automatically detects the Raspberry Pi Pico and opens the serial connection.
+
+Install the required dependency:
+
+```bash
+pip install pyserial
+```
+Supported methods:
+
+```
+from dac8554_api import dac8554_api
+dac = dac8554_api()
+
+dac.write_single(0, "CFD_ZERO", 0x1234) # Write to a single channel
+dac.write_all(0, A=1000, B=2000, C=3000, D=4000) # Write to all channels
+dac.read_config()  # Read the stored configuration
+dac.zero() # Set all DAC outputs to zero
+dac.close() # Close the serial connection
+```

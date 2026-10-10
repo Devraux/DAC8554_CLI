@@ -58,6 +58,17 @@ target_link_libraries(${PROJECT_NAME}
 # --- BUILD OUTPUTS ---
 pico_add_extra_outputs(${PROJECT_NAME})
 
+# --- USB DEVICE DESCRIPTORS ---
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    USBD_VID=0x2E8A
+    USBD_PID=0x000A
+    USBD_MANUFACTURER="CFD Lab"
+    USBD_PRODUCT="CFD DAC8554 Controller"
+)
+
 # --- STDIO SETTINGS ---
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
+
+# --- BUILD OUTPUTS ---
+pico_add_extra_outputs(${PROJECT_NAME})
