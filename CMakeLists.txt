@@ -54,10 +54,6 @@ target_link_libraries(${PROJECT_NAME}
     hardware_spi
 )
 
-
-# --- BUILD OUTPUTS ---
-pico_add_extra_outputs(${PROJECT_NAME})
-
 # --- USB DEVICE DESCRIPTORS ---
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     USBD_VID=0x2E8A
