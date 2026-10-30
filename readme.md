@@ -1,3 +1,5 @@
+[Download CFD DAC8554 Controller](https://github.com/Devraux/DAC8554_CLI/releases/latest/download/main.uf2)
+
 # DAC CLI
 
 A simple CLI for controlling three TI DAC8554 DACs connected to a Raspberry Pi Pico.

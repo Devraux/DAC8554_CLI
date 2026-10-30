@@ -1,4 +1,5 @@
 #include "DAC.h"
+// #include <stdio.h>
 
 static dac_state_t dac_state[DAC_INSTANCE_COUNT] = {0};
 
@@ -57,8 +58,8 @@ bool dac_write_single(dac_instance_t dac_inst, dac_channel_t dac_channel, uint16
             break;
 
         case (DAC_INST_1):
-            write_buffer[0] |= (1 << 7); // set hardcoded device address 0b10
-            write_buffer[0] &=  ~(1 << 6); // set hardcoded device address 0b10
+            write_buffer[0] &= ~(1 << 7); // set hardcoded device address 0b??
+            write_buffer[0] |=  (1 << 6); // set hardcoded device address 0b??
             break;
 
         case (DAC_INST_2):
@@ -107,6 +108,15 @@ bool dac_write_single(dac_instance_t dac_inst, dac_channel_t dac_channel, uint16
     command |= write_buffer[2]; 
     dac_state[dac_inst].current_command = command;
 
+    // printf("DAC CMD (BIN): ");
+    // for (int i = 0; i < 3; i++) {
+    //     for (int bit = 7; bit >= 0; bit--) {
+    //         printf("%d", (write_buffer[i] >> bit) & 1);
+    //     }
+    //     printf(" ");
+    // }
+    // printf("\n");
+
     return (status > 0);
 }
 
@@ -125,8 +135,8 @@ uint32_t status = 0;
             break;
 
         case (DAC_INST_1):
-            write_buffer[0] |= (1 << 7); // set hardcoded device address 0b10
-            write_buffer[0] &=  ~(1 << 6); // set hardcoded device address 0b10
+            write_buffer[0] &= ~(1 << 7); // set hardcoded device address 0b10
+            write_buffer[0] |=  (1 << 6); // set hardcoded device address 0b10
             break;
 
         case (DAC_INST_2):
